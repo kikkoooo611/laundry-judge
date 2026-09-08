@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>今日、洗濯する？ v4</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#fff; --text:#191919; --muted:#707070;
+    --line:#e7e8ee; --good:#16885f; --warn:#b77900; --bad:#c84b4b; --accent:#242424;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;
+    background:linear-gradient(180deg,#f7f8fc 0%,#eef1f6 100%); color:var(--text);
+    min-height:100vh;
+  }
+  .wrap{max-width:800px;margin:0 auto;padding:28px 16px 48px}
+  .hero{margin-bottom:18px}
+  h1{font-size:34px;line-height:1.15;margin:0 0 8px;letter-spacing:-.02em}
+  .sub{margin:0;color:var(--muted);font-size:14px}
+  .card{
+    background:rgba(255,255,255,.94); border:1px solid var(--line); border-radius:22px;
+    padding:18px; box-shadow:0 12px 30px rgba(30,40,60,.06); margin-bottom:14px;
+  }
+  label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
+  input,button{
+    width:100%; border:1px solid #d9dbe2; border-radius:14px; padding:12px 13px;
+    font-size:15px; background:#fff; color:var(--text);
+  }
+  button{cursor:pointer;font-weight:800}
+  .primary{background:var(--accent);color:#fff;border-color:var(--accent);margin-top:12px}
+  .location-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+  .location-row button{width:auto;white-space:nowrap}
+  .status{font-size:13px;color:var(--muted);margin-top:9px}
+  .result{display:none}
+  .summary{
+    display:grid;grid-template-columns:1.2fr .8fr;gap:12px;align-items:stretch
+  }
+  @media(max-width:650px){.summary{grid-template-columns:1fr}}
+  .summary-main{
+    border:1px solid var(--line);border-radius:18px;padding:16px;background:#fafbfe
+  }
+  .badge{
+    display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 11px;
+    font-size:13px;font-weight:900;margin-bottom:10px;
+  }
+  .badge.good{background:#e7f6ef;color:var(--good)}
+  .badge.warn{background:#fff4db;color:var(--warn)}
+  .badge.bad{background:#ffe9e9;color:var(--bad)}
+  .verdict{font-size:28px;font-weight:900;line-height:1.25;margin:0 0 10px}
+  .reason{font-size:15px;line-height:1.7;margin:0;color:#343434}
+  .until{
+    border:1px solid var(--line);border-radius:18px;padding:16px;background:#fff
+  }
+  .until .label{font-size:12px;color:var(--muted);font-weight:700}
+  .until .time{font-size:34px;font-weight:900;margin:5px 0 4px}
+  .until .note{font-size:12px;color:var(--muted);line-height:1.6}
+  .items{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+  @media(max-width:650px){.items{grid-template-columns:1fr}}
+  .item{
+    border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff
+  }
+  .item-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+  .item-name{font-weight:900}
+  .pill{font-size:12px;font-weight:900;border-radius:999px;padding:5px 9px}
+  .pill.good{background:#e7f6ef;color:var(--good)}
+  .pill.warn{background:#fff4db;color:var(--warn)}
+  .pill.bad{background:#ffe9e9;color:var(--bad)}
+  .item p{font-size:13px;color:#555;line-height:1.55;margin:0}
+  .metrics{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px
+  }
+  @media(max-width:650px){.metrics{grid-template-columns:repeat(2,1fr)}}
+  .metric{background:#f7f8fb;border-radius:14px;padding:10px;text-align:center}
+  .metric b{display:block;font-size:18px;margin-top:4px}
+  .metric span{font-size:11px;color:var(--muted)}
+  .footer{font-size:12px;color:#8a8a8a;line-height:1.6;padding:8px 4px}
+  .tiny{font-size:12px;color:var(--muted);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>今日、洗濯する？</h1>
+    <p class="sub">場所だけ入れたら、外干しできる時間と洗濯物ごとの向き不向きをまとめて判定。</p>
+  </div>
+
+  <div class="card">
+    <label>場所</label>
+    <div class="location-row">
+      <input id="city" value="姫路市" placeholder="例：姫路市" />
+      <button id="geoBtn" type="button">現在地</button>
+    </div>
+    <div class="tiny" id="placeText">姫路市を検索します</div>
+    <button class="primary" id="judgeBtn">今日の洗濯を判定する</button>
+    <div class="status" id="status">通常予報＋気象庁MSMの2系統で判定します。</div>
+  </div>
+
+  <div class="card result" id="result">
+    <div class="summary">
+      <div class="summary-main">
+        <div id="badge" class="badge good">◎ 洗濯向き</div>
+        <h2 class="verdict" id="verdict">今日は洗濯日和。</h2>
+        <p class="reason" id="reason"></p>
+      </div>
+      <div class="until">
+        <div class="label">外に干せる目安</div>
+        <div class="time" id="untilTime">--:--</div>
+        <div class="note" id="untilNote"></div>
+      </div>
+    </div>
+
+    <div class="items">
+      <div class="item">
+        <div class="item-head">
+          <div class="item-name">Tシャツ・下着など薄手</div>
+          <div id="thinPill" class="pill good">◎ いける</div>
+        </div>
+        <p id="thinText"></p>
+      </div>
+
+      <div class="item">
+        <div class="item-head">
+          <div class="item-name">タオル類</div>
+          <div id="towelPill" class="pill good">◎ いける</div>
+        </div>
+        <p id="towelText"></p>
+      </div>
+
+      <div class="item">
+        <div class="item-head">
+          <div class="item-name">デニム・厚手の服</div>
+          <div id="denimPill" class="pill warn">△ 微妙</div>
+        </div>
+        <p id="denimText"></p>
+      </div>
+
+      <div class="item">
+        <div class="item-head">
+          <div class="item-name">敷きパッド・シーツ</div>
+          <div id="bedPill" class="pill good">◎ いける</div>
+        </div>
+        <p id="bedText"></p>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><span>最大降水確率</span><b id="mRain">--%</b></div>
+      <div class="metric"><span>平均湿度</span><b id="mHumidity">--%</b></div>
+      <div class="metric"><span>平均風速</span><b id="mWind">--</b></div>
+      <div class="metric"><span>平均気温</span><b id="mTemp">--℃</b></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    ※外干しのみで判定。通常予報に加えて気象庁MSMを照合し、弱い雨予測は減点、まとまった雨だけ強く反映します。高解像度降水ナウキャストそのものではないため、突発的な超局地雨を完全には拾えません。
+  </div>
+</div>
+
+<script>
+const cityEl = document.getElementById('city');
+const statusEl = document.getElementById('status');
+const resultEl = document.getElementById('result');
+let coords = null;
+
+async function geocodeCity(name){
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=5&language=ja&format=json`;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('場所検索に失敗');
+  const data = await r.json();
+  if(!data.results || !data.results.length) throw new Error('場所が見つかりません');
+  const jp = data.results.find(x => x.country_code === 'JP') || data.results[0];
+  return {lat:jp.latitude, lon:jp.longitude, name:[jp.name,jp.admin1].filter(Boolean).join(' / ')};
+}
+
+async function fetchWeather(lat, lon){
+  const params = new URLSearchParams({
+    latitude:lat, longitude:lon, timezone:'auto',
+    hourly:'temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,wind_speed_10m,cloud_cover',
+    forecast_days:'2'
+  });
+  const r = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+  if(!r.ok) throw new Error('通常予報の取得に失敗');
+  return await r.json();
+}
+
+async function fetchJmaWeather(lat, lon){
+  const params = new URLSearchParams({
+    latitude:lat, longitude:lon, timezone:'auto',
+    hourly:'temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,cloud_cover',
+    forecast_days:'2',
+    models:'jma_msm'
+  });
+  const r = await fetch(`https://api.open-meteo.com/v1/jma?${params}`);
+  if(!r.ok) throw new Error('気象庁MSMの取得に失敗');
+  return await r.json();
+}
+
+function getTodayHours(data){
+  const now = new Date();
+  const out = [];
+  data.hourly.time.forEach((t,i)=>{
+    const d = new Date(t);
+    if(d.toDateString() === now.toDateString() && d >= now){
+      out.push({
+        time:d,
+        temp:data.hourly.temperature_2m[i],
+        humidity:data.hourly.relative_humidity_2m[i],
+        rainProb:data.hourly.precipitation_probability[i] ?? 0,
+        rain:data.hourly.precipitation[i] ?? 0,
+        wind:data.hourly.wind_speed_10m[i] ?? 0,
+        cloud:data.hourly.cloud_cover[i] ?? 0
+      });
+    }
+  });
+  return out;
+}
+
+function getTodayJmaHours(data){
+  const now = new Date();
+  const out = [];
+  data.hourly.time.forEach((t,i)=>{
+    const d = new Date(t);
+    if(d.toDateString() === now.toDateString() && d >= now){
+      out.push({
+        time:d,
+        precipitation:data.hourly.precipitation[i] ?? 0,
+        humidity:data.hourly.relative_humidity_2m[i] ?? 0,
+        wind:data.hourly.wind_speed_10m[i] ?? 0,
+        cloud:data.hourly.cloud_cover[i] ?? 0,
+        temp:data.hourly.temperature_2m[i] ?? 0
+      });
+    }
+  });
+  return out;
+}
+
+function jmaRainRisk(hours){
+  const next = hours.slice(0, 8);
+  if(!next.length) return {level:'unknown', maxRain:0, total:0, rainyHours:0, firstSignificant:null};
+
+  const vals = next.map(x => Number(x.precipitation)||0);
+  const maxRain = Math.max(...vals);
+  const total = vals.reduce((s,x)=>s+x,0);
+  const rainyHours = vals.filter(v => v >= 0.1).length;
+
+  let firstSignificant = null;
+  for(const h of next){
+    if((Number(h.precipitation)||0) >= 0.5){
+      firstSignificant = h.time;
+      break;
+    }
+  }
+
+  let level='low';
+  if(maxRain >= 1.5 || total >= 3 || rainyHours >= 3) level='high';
+  else if(maxRain >= 0.5 || total >= 1 || rainyHours >= 2) level='medium';
+  else if(maxRain >= 0.1) level='slight';
+
+  return {level, maxRain, total, rainyHours, firstSignificant};
+}
+
+function avg(a,key){ return a.reduce((s,x)=>s+(Number(x[key])||0),0)/Math.max(a.length,1); }
+function max(a,key){ return Math.max(...a.map(x=>Number(x[key])||0)); }
+
+function hourDryScore(h){
+  let score = 100;
+  score -= h.rainProb * 0.75;
+  score -= Math.min(h.rain * 55, 55);
+  score -= Math.max(h.humidity - 55, 0) * 0.75;
+  score += Math.min(h.wind, 18) * 1.1;
+  score += Math.max(h.temp - 15, 0) * 0.8;
+  score -= Math.max(h.cloud - 70, 0) * 0.15;
+  return score;
+}
+
+function findDryWindow(hours){
+  const usable = [];
+  for(const h of hours){
+    const s = hourDryScore(h);
+    const dangerousRain = h.rainProb >= 55 || h.rain >= 0.3;
+    if(!dangerousRain && s >= 45){
+      usable.push(h);
+    }else{
+      if(usable.length) break;
+    }
+  }
+  return usable;
+}
+
+function durationHours(window){
+  return window.length;
+}
+
+function itemDecision(type, stats){
+  const need = {
+    thin:{minHours:2, minScore:46},
+    towel:{minHours:3, minScore:52},
+    denim:{minHours:5, minScore:62},
+    bedding:{minHours:4, minScore:58}
+  }[type];
+
+  if((stats.maxRain >= 70 || stats.totalRain >= 1.8) && stats.jmaRisk === 'high'){
+    return {level:'bad', label:'× 見送り', text:'雨リスクが高く、外干しだけで乾かすには向いてない。'};
+  }
+
+  if(stats.hours >= need.minHours && stats.avgScore >= need.minScore){
+    let text='外干しだけで乾かせる可能性が高め。';
+    if(type==='denim') text='厚手やけど、干せる時間と乾燥条件は足りそう。裏返しや途中の向き替えはした方がいい。';
+    if(type==='bedding') text='広げて風を通せるなら、外干しで仕上げやすい条件。';
+    return {level:'good', label:'◎ いける', text};
+  }
+
+  if(stats.hours >= Math.max(2, need.minHours-1) && stats.avgScore >= need.minScore-10){
+    let text='乾く可能性はあるけど、完全乾燥はやや賭け。';
+    if(type==='denim') text='表面は乾いても縫い目やポケット周りが残りやすそう。今日は微妙。';
+    if(type==='bedding') text='日当たりや風通し次第。厚めの敷きパッドならやや厳しめ。';
+    return {level:'warn', label:'△ 微妙', text};
+  }
+
+  let text='外干しだけで完全に乾かすには条件不足。';
+  if(type==='thin') text='薄手でも乾燥条件が弱め。今日は見送る方が無難。';
+  return {level:'bad', label:'× 見送り', text};
+}
+
+function overallDecision(items, stats){
+  const levels = Object.values(items).map(x=>x.level);
+  const goodCount = levels.filter(x=>x==='good').length;
+  if((stats.maxRain >= 70 || stats.totalRain >= 1.8) && stats.jmaRisk === 'high'){
+    return {level:'bad', badge:'× 洗濯向きではない', verdict:'今日は外干し見送り。'};
+  }
+  if(goodCount >= 3){
+    return {level:'good', badge:'◎ 洗濯向き', verdict:'今日は洗濯日和。'};
+  }
+  if(goodCount >= 1){
+    return {level:'warn', badge:'△ ものを選べばアリ', verdict:'薄手中心なら洗ってOK。'};
+  }
+  return {level:'bad', badge:'× 見送り', verdict:'今日は洗濯向きではない。'};
+}
+
+function formatTime(d){
+  return `${String(d.getHours()).padStart(2,'0')}:00`;
+}
+
+function setPill(id, result){
+  const el = document.getElementById(id);
+  el.className = `pill ${result.level}`;
+  el.textContent = result.label;
+}
+
+document.getElementById('geoBtn').onclick = () => {
+  if(!navigator.geolocation){
+    statusEl.textContent='このブラウザは現在地取得に対応していません。';
+    return;
+  }
+  statusEl.textContent='現在地を取得中…';
+  navigator.geolocation.getCurrentPosition(
+    p => {
+      coords = {lat:p.coords.latitude, lon:p.coords.longitude, name:'現在地'};
+      document.getElementById('placeText').textContent='現在地を使用します';
+      statusEl.textContent='現在地を取得しました。';
+    },
+    () => statusEl.textContent='現在地を取得できませんでした。市名入力で使えます。'
+  );
+};
+
+cityEl.addEventListener('input',()=>{
+  coords=null;
+  document.getElementById('placeText').textContent=`${cityEl.value || '市名'}を検索します`;
+});
+
+document.getElementById('judgeBtn').onclick = async () => {
+  try{
+    resultEl.style.display='none';
+    statusEl.textContent='天気を確認中…';
+
+    let c = coords;
+    if(!c){
+      c = await geocodeCity(cityEl.value.trim());
+      document.getElementById('placeText').textContent=c.name;
+    }
+
+    const [weather, jmaWeather] = await Promise.all([
+      fetchWeather(c.lat,c.lon),
+      fetchJmaWeather(c.lat,c.lon)
+    ]);
+    const hours = getTodayHours(weather);
+    const jmaHours = getTodayJmaHours(jmaWeather);
+    if(!hours.length) throw new Error('今日の残り時間の天気データがありません。');
+
+    const jmaRisk = jmaRainRisk(jmaHours);
+    let window = findDryWindow(hours);
+
+    // JMAは「即アウト」にはせず、強い雨だけ外干し可能時間を前倒し。
+    // 弱い雨予測は後段のスコア補正だけに使う。
+    if(jmaRisk.firstSignificant && jmaRisk.level === 'high'){
+      window = window.filter(h => h.time < jmaRisk.firstSignificant);
+    }
+    const usable = window.length ? window : hours.slice(0,1);
+
+    const stats = {
+      hours: durationHours(window),
+      maxRain: max(usable,'rainProb'),
+      totalRain: usable.reduce((s,x)=>s+(Number(x.rain)||0),0),
+      humidity: avg(usable,'humidity'),
+      wind: avg(usable,'wind'),
+      temp: avg(usable,'temp'),
+      avgScore: avg(usable.map(x=>({score:hourDryScore(x)})),'score'),
+      jmaRisk:jmaRisk.level,
+      jmaMaxRain:jmaRisk.maxRain,
+      jmaRainyHours:jmaRisk.rainyHours,
+      jmaFirstSignificant:jmaRisk.firstSignificant
+    };
+
+    // JMAの雨予測は補助情報として穏やかに反映
+    if(jmaRisk.level === 'high'){
+      stats.maxRain = Math.max(stats.maxRain, 60);
+      stats.avgScore -= 18;
+    } else if(jmaRisk.level === 'medium'){
+      stats.maxRain = Math.max(stats.maxRain, 40);
+      stats.avgScore -= 9;
+    } else if(jmaRisk.level === 'slight'){
+      stats.avgScore -= 3;
+    }
+
+    const items = {
+      thin:itemDecision('thin',stats),
+      towel:itemDecision('towel',stats),
+      denim:itemDecision('denim',stats),
+      bedding:itemDecision('bedding',stats)
+    };
+    const overall = overallDecision(items,stats);
+
+    const badge = document.getElementById('badge');
+    badge.className = `badge ${overall.level}`;
+    badge.textContent = overall.badge;
+    document.getElementById('verdict').textContent = overall.verdict;
+
+    const reasonParts = [];
+    reasonParts.push(`最大降水確率${Math.round(stats.maxRain)}%`);
+    reasonParts.push(`平均湿度${Math.round(stats.humidity)}%`);
+    reasonParts.push(`平均風速${stats.wind.toFixed(1)}km/h`);
+    if(stats.hours > 0) reasonParts.push(`連続して外干ししやすい時間は約${stats.hours}時間`);
+    if(jmaRisk.level === 'high'){
+      reasonParts.push('気象庁MSMでも近い時間にまとまった雨リスクあり');
+    }else if(jmaRisk.level === 'medium'){
+      reasonParts.push('気象庁MSMで一時的な雨リスクあり');
+    }else if(jmaRisk.level === 'slight'){
+      reasonParts.push('気象庁MSMでごく弱い雨の可能性あり');
+    }else{
+      reasonParts.push('気象庁MSMでは直近の雨リスク低め');
+    }
+    document.getElementById('reason').textContent = reasonParts.join('、') + '。';
+
+    if(window.length){
+      const last = window[window.length-1].time;
+      document.getElementById('untilTime').textContent = formatTime(last);
+      document.getElementById('untilNote').textContent =
+        jmaRisk.firstSignificant && jmaRisk.level === 'high'
+          ? '通常予報に加え、気象庁MSMの強めの雨予測が出る前までを安全側の目安にしています。'
+          : '通常予報と気象庁MSMの両方を見て、連続して外干ししやすい時間です。';
+    }else{
+      document.getElementById('untilTime').textContent = '今は厳しめ';
+      document.getElementById('untilNote').textContent = '今日の残り時間に安定した外干し条件が見つかりませんでした。';
+    }
+
+    setPill('thinPill',items.thin);
+    setPill('towelPill',items.towel);
+    setPill('denimPill',items.denim);
+    setPill('bedPill',items.bedding);
+    document.getElementById('thinText').textContent=items.thin.text;
+    document.getElementById('towelText').textContent=items.towel.text;
+    document.getElementById('denimText').textContent=items.denim.text;
+    document.getElementById('bedText').textContent=items.bedding.text;
+
+    document.getElementById('mRain').textContent=`${Math.round(stats.maxRain)}%`;
+    document.getElementById('mHumidity').textContent=`${Math.round(stats.humidity)}%`;
+    document.getElementById('mWind').textContent=`${stats.wind.toFixed(1)} km/h`;
+    document.getElementById('mTemp').textContent=`${stats.temp.toFixed(1)}℃`;
+
+    resultEl.style.display='block';
+    statusEl.textContent=`${c.name}の通常予報＋気象庁MSMで判定しました。`;
+  }catch(e){
+    statusEl.textContent='エラー：'+e.message;
+  }
+};
+</script>
+</body>
+</html>
