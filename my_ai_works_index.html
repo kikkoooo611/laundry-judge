@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My AI Works</title>
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --card:#ffffff;
+    --text:#171717;
+    --muted:#71717a;
+    --line:#e4e7ec;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;
+    background:linear-gradient(180deg,#fafbfc 0%,#eef1f5 100%);
+    color:var(--text);
+  }
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:52px 20px 64px;
+  }
+  .eyebrow{
+    margin-bottom:10px;
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.14em;
+    color:#9a9a9a;
+  }
+  h1{
+    margin:0;
+    font-size:42px;
+    line-height:1.12;
+    letter-spacing:-.03em;
+  }
+  .lead{
+    margin:14px 0 30px;
+    color:var(--muted);
+    font-size:15px;
+    line-height:1.75;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:16px;
+  }
+  .card{
+    display:block;
+    padding:20px;
+    border:1px solid var(--line);
+    border-radius:22px;
+    background:rgba(255,255,255,.96);
+    color:inherit;
+    text-decoration:none;
+    box-shadow:0 10px 28px rgba(30,40,60,.05);
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .card.link:hover{
+    transform:translateY(-3px);
+    box-shadow:0 16px 34px rgba(30,40,60,.09);
+  }
+  .icon{
+    width:50px;
+    height:50px;
+    display:grid;
+    place-items:center;
+    margin-bottom:16px;
+    border-radius:15px;
+    background:#f2f3f5;
+    font-size:26px;
+  }
+  .card h2{
+    margin:0 0 8px;
+    font-size:21px;
+  }
+  .card p{
+    margin:0;
+    color:var(--muted);
+    font-size:14px;
+    line-height:1.65;
+  }
+  .meta{
+    margin-top:18px;
+    color:#a0a0a0;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.06em;
+  }
+  .empty{
+    border-style:dashed;
+    background:rgba(255,255,255,.48);
+    box-shadow:none;
+  }
+  .footer{
+    margin-top:32px;
+    color:#a1a1aa;
+    font-size:12px;
+  }
+  @media(max-width:680px){
+    .wrap{padding-top:34px}
+    h1{font-size:34px}
+    .grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="eyebrow">MY AI WORKS</div>
+    <h1>自分で作ったもの。</h1>
+    <p class="lead">AIを使って作った、自分用の小さなツール置き場。</p>
+
+    <section class="grid">
+      <a class="card link" href="laundry.html">
+        <div class="icon">🧺</div>
+        <h2>今日、洗濯する？</h2>
+        <p>今日の天気から、外干しできるか、何時まで干せるか、洗濯物ごとの向き不向きをまとめて判定。</p>
+        <div class="meta">UTILITY / WEATHER</div>
+      </a>
+
+      <div class="card empty">
+        <div class="icon">＋</div>
+        <h2>次の作品</h2>
+        <p>新しいツールを作ったら、ここに追加。</p>
+        <div class="meta">COMING SOON</div>
+      </div>
+    </section>
+
+    <div class="footer">少しずつ、自分専用の道具箱にしていく。</div>
+  </main>
+</body>
+</html>
